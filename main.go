@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Conero007/url-shortener-golang/app"
 	"github.com/joho/godotenv"
 )
 
@@ -12,7 +13,7 @@ func main() {
 		log.Fatal(".env file could not be loaded ", err)
 	}
 
-	app := NewApp()
+	app := app.NewApp()
 	if err := app.Initialize(
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),

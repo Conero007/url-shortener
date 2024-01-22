@@ -1,4 +1,4 @@
-package main
+package app
 
 func getTableCreationQueries() map[string]string {
 	queries := make(map[string]string)
@@ -8,6 +8,7 @@ func getTableCreationQueries() map[string]string {
 		id INT PRIMARY KEY AUTO_INCREMENT,
 		original_url VARCHAR(255) NOT NULL,
 		short_key VARCHAR(20) NOT NULL,
+		expire_time TIMESTAMP NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 	);`
