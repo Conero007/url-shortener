@@ -1,0 +1,37 @@
+version: "1.0"
+services:
+  db:
+    image: mysql:8.0
+    container_name: db
+    networks:
+      - dev_network
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: url_shortener
+    # entrypoint: sh -c "echo 'CREATE DATABASE IF NOT EXISTS url_shortener_test' > /docker-entrypoint-initdb.d/init.sql; /usr/local/docker-entrypoint.sh --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default=-authentication-plugin=mysql_native_password"
+    ports:
+      - 3309:3306
+    volumes:
+      - data:/var/lib/mysql
+
+  go:
+    build:
+      context: .
+      dockerfile: dockerfile
+    image: go:1.0
+    container_name: go
+    ports:
+      - 3000:3000
+    volumes:
+      - .:/var/www/url_shortener:rw
+    networks:
+      - dev_network
+    depends_on:
+      - db
+    tty: true
+
+networks:
+  dev_network:
+    external: true
+volumes:
+  data: {}
