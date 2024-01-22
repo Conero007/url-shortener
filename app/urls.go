@@ -19,12 +19,6 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, ok = requestBody["url"].(string)
-	if !ok {
-		respondWithError(w, http.StatusBadRequest, "Invalid URL given")
-		return
-	}
-
 	originalURL := requestBody["url"].(string)
 
 	if !validateURL(originalURL) {
@@ -34,14 +28,13 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 
 	shortKey := generateShortKey()
 	shortURL := generateShortURL(shortKey)
-	expireTime := time.Now().AddDate(0, 0, 7)
+	expireTime := truncateToDay(time.Now().AddDate(0, 0, 8))
 
 	u := models.URL{
 		OriginalURL: originalURL,
 		ShortKey:    shortKey,
 		ShortURL:    shortURL,
 		ExpireTime:  expireTime,
-		ExpireDate:  expireTime.Format("02-01-2006"),
 	}
 
 	if err := u.Create(App.DB); err != nil {
@@ -50,7 +43,7 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, u)
+	respondWithJSON(w, http.StatusCreated, u)
 }
 
 func HandleRedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
