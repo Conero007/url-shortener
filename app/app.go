@@ -25,10 +25,11 @@ func NewApp() *AppConfig {
 func (a *AppConfig) Initialize(host, port, user, password, DBName string) error {
 	addr := fmt.Sprintf("%s:%s", host, port)
 	cfg := mysql.Config{
-		User:   user,
-		Passwd: password,
-		Net:    "tcp",
-		Addr:   addr,
+		User:      user,
+		Passwd:    password,
+		Net:       "tcp",
+		Addr:      addr,
+		ParseTime: true,
 	}
 
 	var err error
