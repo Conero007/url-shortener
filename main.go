@@ -24,8 +24,7 @@ func main() {
 		log.Fatal("Failed to initialize the App ", err)
 	}
 
-	// addr := fmt.Sprintf("%s:%s", os.Getenv("ADDR"), os.Getenv("PORT"))
-	// if err := app.Run(addr); err != nil {
-	// 	log.Fatal("Failed to Run the APP ", err)
-	// }
+	if err := app.Run(":" + os.Getenv("PORT")); err != nil {
+		log.Fatal("Failed to Run the APP ", err)
+	}
 }
