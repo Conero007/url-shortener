@@ -87,9 +87,9 @@ func TestCreateShortKey(t *testing.T) {
 func TestRedirectViaShortKey(t *testing.T) {
 	clearTable("url")
 
-	shortKey, err := addShortKey("https://www.google.com/")
+	shortKey, err := addShortKey("https://www.google.com/", time.Now().Add(60*time.Second))
 	if err != nil {
-		t.Errorf("Failed to add short and orign to DB. ERROR: %s", err.Error())
+		t.Errorf("Failed to add original url to DB. ERROR: %s", err.Error())
 		return
 	}
 
@@ -103,6 +103,28 @@ func TestRedirectViaShortKey(t *testing.T) {
 	}
 }
 
+func TestExpiredShortKey(t *testing.T) {
+	clearTable("urls")
+	shortKey, err := addShortKey("https://www.google.com/", time.Now())
+	if err != nil {
+		t.Errorf("Failed to add original url to DB. ERROR: %s", err.Error())
+		return
+	}
+
+	time.Sleep(time.Second)
+
+	req, _ := http.NewRequest("GET", "/"+shortKey, nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusNotFound, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Short Key not found" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Short Key not found'. Got '%s'", m["error"])
+	}
+}
+
 func clearTable(tableName string) error {
 	if _, err := App.DB.Exec("DELETE FROM " + tableName); err != nil {
 		return err
@@ -113,9 +135,9 @@ func clearTable(tableName string) error {
 	return nil
 }
 
-func addShortKey(originalURL string) (string, error) {
+func addShortKey(originalURL string, expireTime time.Time) (string, error) {
 	shortKey := generateShortKey()
-	_, err := App.DB.Exec("INSERT INTO urls(orignal_url, short_key, expire_time) VALUES($1, $2, $3)", originalURL, shortKey, time.Now().AddDate(100, 0, 0))
+	_, err := App.DB.Exec("INSERT INTO urls(orignal_url, short_key, expire_time) VALUES($1, $2, $3)", originalURL, shortKey, expireTime)
 	return shortKey, err
 }
 
