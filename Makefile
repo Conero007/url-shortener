@@ -1,7 +1,7 @@
 build:
 	@go build -o bin/shorten
 
-run: build
+run: build test
 	@./bin/shorten
 
 test: build
