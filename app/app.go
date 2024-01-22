@@ -45,6 +45,7 @@ func (a *AppConfig) Initialize(host, port, user, password, DBName string) error 
 	}
 
 	a.Router = mux.NewRouter()
+	InitializeRoutes()
 
 	return err
 }
