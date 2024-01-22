@@ -34,7 +34,7 @@ services:
       - .:/var/www/url_shortener:rw
     networks:
       - dev_network
-    command: sh -c "make build"
+    command: sh -c "make run"
     depends_on:
       - db
     tty: true
