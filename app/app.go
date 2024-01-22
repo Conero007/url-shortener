@@ -8,23 +8,25 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type App struct {
+var App *AppConfig
+
+type AppConfig struct {
 	Router *mux.Router
 	DB     *sql.DB
 }
 
-func NewApp() App {
-	return App{}
+func NewApp() *AppConfig {
+	App = &AppConfig{}
+	return App
 }
 
-func (a *App) Initialize(host, port, user, password, DBName string) error {
+func (a *AppConfig) Initialize(host, port, user, password, DBName string) error {
 	addr := fmt.Sprintf("%s:%s", host, port)
 	cfg := mysql.Config{
 		User:   user,
 		Passwd: password,
 		Net:    "tcp",
 		Addr:   addr,
-		DBName: DBName,
 	}
 
 	var err error
@@ -38,11 +40,15 @@ func (a *App) Initialize(host, port, user, password, DBName string) error {
 		return err
 	}
 
+	if err := RunMigrations(DBName); err != nil {
+		return err
+	}
+
 	a.Router = mux.NewRouter()
 
 	return err
 }
 
-func (a *App) Run(addr string) error {
+func (a *AppConfig) Run(addr string) error {
 	return nil
 }

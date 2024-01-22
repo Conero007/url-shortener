@@ -5,4 +5,4 @@ run: build
 	@./bin/shorten
 
 test: build
-	@go test ./... -v
+	@go test ./app -v

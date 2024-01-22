@@ -14,7 +14,7 @@ services:
       - data:/var/lib/mysql
 
   redis:
-    image: redis
+    image: redis:7
     container_name: redis
     restart: always
     networks:
