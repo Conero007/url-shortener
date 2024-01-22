@@ -11,5 +11,3 @@ RUN mkdir -p /var/www
 COPY . /var/www/url_shortener
 
 WORKDIR /var/www/url_shortener
-
-RUN make build

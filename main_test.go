@@ -12,11 +12,7 @@ var app App
 
 func TestMain(m *testing.M) {
 	if err := godotenv.Load(".env"); err != nil {
-		log.Fatal(".testing.env file could not be loaded", err)
-	}
-
-	if err := makeTestDB(); err != nil {
-		log.Fatal(err)
+		log.Fatal(".testing.env file could not be loaded ", err)
 	}
 
 	app = NewApp()
@@ -27,11 +23,11 @@ func TestMain(m *testing.M) {
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_NAME"),
 	); err != nil {
-		log.Fatal("Failed to initialize the App", err)
+		log.Fatal("Failed to initialize the App ", err)
 	}
 
 	if err := RunMigrations(app); err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to run migrations ", err)
 	}
 
 	code := m.Run()
@@ -41,14 +37,4 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(code)
-}
-
-func makeTestDB() error {
-	app.DB.Exec("CREATE DATABASE " + os.Getenv("DB_NAME"))
-
-	if _, err := app.DB.Exec("USE " + os.Getenv("DB_NAME")); err != nil {
-		return err
-	}
-
-	return nil
 }

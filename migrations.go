@@ -26,10 +26,10 @@ func RunMigrations(app App) error {
 
 func RollbackMigrations(app App) error {
 	for tableName := range getTableCreationQueries() {
-		if _, err := app.DB.Exec("DELETE FROM ?", tableName); err != nil {
+		if _, err := app.DB.Exec("DELETE FROM " + tableName); err != nil {
 			return err
 		}
-		if _, err := app.DB.Exec("ALTER TABLE ? AUTO_INCREMENT = 1", tableName); err != nil {
+		if _, err := app.DB.Exec("ALTER TABLE " + tableName + " AUTO_INCREMENT = 1"); err != nil {
 			return err
 		}
 	}

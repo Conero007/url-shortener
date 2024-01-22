@@ -9,7 +9,7 @@ import (
 
 func main() {
 	if err := godotenv.Load(".env"); err != nil {
-		log.Fatal(".env file could not be loaded", err)
+		log.Fatal(".env file could not be loaded ", err)
 	}
 
 	app := NewApp()
@@ -20,11 +20,11 @@ func main() {
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_NAME"),
 	); err != nil {
-		log.Fatal("Failed to initialize the App", err)
+		log.Fatal("Failed to initialize the App ", err)
 	}
 
 	// addr := fmt.Sprintf("%s:%s", os.Getenv("ADDR"), os.Getenv("PORT"))
 	// if err := app.Run(addr); err != nil {
-	// 	log.Fatal(err)
+	// 	log.Fatal("Failed to Run the APP ", err)
 	// }
 }
