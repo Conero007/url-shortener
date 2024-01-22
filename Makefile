@@ -1,4 +1,4 @@
-build:
+build: test
 	@go build -o bin/shorten
 
 run: build
