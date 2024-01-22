@@ -15,6 +15,10 @@ func TestMain(m *testing.M) {
 		log.Fatal(".testing.env file could not be loaded", err)
 	}
 
+	if err := makeTestDB(); err != nil {
+		log.Fatal(err)
+	}
+
 	app = NewApp()
 	if err := app.Initialize(
 		os.Getenv("DB_HOST"),
@@ -26,9 +30,25 @@ func TestMain(m *testing.M) {
 		log.Fatal("Failed to initialize the App", err)
 	}
 
-	RunMigrations(app)
+	if err := RunMigrations(app); err != nil {
+		log.Fatal(err)
+	}
+
 	code := m.Run()
-	RollbackMigrations(app)
+
+	if err := RollbackMigrations(app); err != nil {
+		log.Fatal(err)
+	}
 
 	os.Exit(code)
+}
+
+func makeTestDB() error {
+	app.DB.Exec("CREATE DATABASE " + os.Getenv("DB_NAME"))
+
+	if _, err := app.DB.Exec("USE " + os.Getenv("DB_NAME")); err != nil {
+		return err
+	}
+
+	return nil
 }
