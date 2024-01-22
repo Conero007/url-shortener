@@ -2,17 +2,14 @@ package models
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
 type URL struct {
-	OriginalURL string `json:"original_url"`
-	ShortURL    string `json:"short_url"`
-	ExpireDate  string `json:"expire_date"`
-
-	ShortKey   string    `json:"-"`
-	ExpireTime time.Time `json:"-"`
+	ShortKey    string    `json:"-"`
+	OriginalURL string    `json:"original_url"`
+	ShortURL    string    `json:"short_url"`
+	ExpireTime  time.Time `json:"expire_time"`
 }
 
 func (u *URL) Create(db *sql.DB) error {
@@ -21,6 +18,5 @@ func (u *URL) Create(db *sql.DB) error {
 }
 
 func (u *URL) Fetch(db *sql.DB) {
-	db.QueryRow("SELECT * FROM urls WHERE short_key = $1", u.ShortKey).Scan(&u)
-	fmt.Printf("\n\n%+v\n\n", u)
+	db.QueryRow("SELECT original_url, short_key, expire_time FROM urls WHERE short_key = ?", u.ShortKey).Scan(&u.OriginalURL, &u.ShortKey, &u.ExpireTime)
 }
