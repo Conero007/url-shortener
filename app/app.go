@@ -3,6 +3,8 @@ package app
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"net/http"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -51,5 +53,9 @@ func (a *AppConfig) Initialize(host, port, user, password, DBName string) error 
 }
 
 func (a *AppConfig) Run(addr string) error {
+	log.Printf("Starting Server at http://%s\n", addr)
+	if err := http.ListenAndServe(addr, a.Router); err != nil {
+		return err
+	}
 	return nil
 }
