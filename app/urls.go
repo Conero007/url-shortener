@@ -1,15 +1,12 @@
 package app
 
-type URL struct {
-	ID          int    `json:"id"`
-	OriginalURL string `json:"original_url"`
-	ShortKey    string `json:"short_key"`
+import (
+	"net/http"
+)
+
+func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
+
 }
 
-// func (u *URL) getOriginalURL(db *sql.DB) (string, error) {
-// 	return "", errors.New("not implemented")
-// }
-
-// func (u *URL) createShortURL(db *sql.DB) error {
-// 	return errors.New("not implemented")
-// }
+func HandleRedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
+}
