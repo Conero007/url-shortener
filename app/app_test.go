@@ -73,6 +73,23 @@ func TestCreateShortKey(t *testing.T) {
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
 
+	if _, ok := m["original_url"]; !ok {
+		t.Error("original_url field missing in the response")
+		return
+	} else if m["original_url"] != "https://www.google.com/" {
+		t.Error("original_url different from the one in the request")
+	}
+
+	if _, ok := m["short_key"]; !ok {
+		t.Error("short_key field missing in the response")
+		return
+	}
+
+	if _, ok := m["expire_time"]; !ok {
+		t.Error("expire_time field missing in the response")
+		return
+	}
+
 	if _, ok := m["shorten_url"].(string); !ok {
 		t.Error("Failed to typecast shorten_url field to string.")
 		return
