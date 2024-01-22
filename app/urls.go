@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Conero007/url-shortener-golang/models"
+	"github.com/gorilla/mux"
 )
 
 func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
@@ -47,4 +48,20 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleRedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	if !validateShortKey(vars["key"]) {
+		respondWithError(w, http.StatusBadRequest, "Invalid short key")
+		return
+	}
+
+	u := models.URL{ShortKey: vars["key"]}
+	u.Fetch(App.DB)
+
+	if u.OriginalURL == "" || u.ExpireTime.Before(time.Now()) {
+		respondWithError(w, http.StatusNotFound, "Short Key not found")
+		return
+	}
+
+	http.Redirect(w, r, u.OriginalURL, http.StatusMovedPermanently)
 }
