@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
+	"time"
 )
 
 const keyLength = 6
@@ -37,8 +39,20 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 func validateURL(originalURL string) bool {
-	if _, err := url.ParseRequestURI("http://google.com/"); err != nil {
+	if _, err := url.ParseRequestURI(originalURL); err != nil {
 		return false
 	}
 	return true
+}
+
+func validateShortKey(shortKey string) bool {
+	regexPattern := `^[A-Z a-z 0-9]{6}$`
+	if ok, _ := regexp.MatchString(regexPattern, shortKey); !ok {
+		return false
+	}
+	return true
+}
+
+func truncateToDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
 }
