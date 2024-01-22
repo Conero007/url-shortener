@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -39,25 +40,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestGetNonExistentShortKey(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
-		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
-		return
-	}
-
-	req, _ := http.NewRequest("GET", "/shorten/11", nil)
-	response := executeRequest(req)
-
-	checkResponseCode(t, http.StatusNotFound, response.Code)
-
-	var m map[string]string
-	json.Unmarshal(response.Body.Bytes(), &m)
-	if m["error"] != "Short Key not found" {
-		t.Errorf("Expected the 'error' key of the response to be set to 'Short Key not found'. Got '%s'", m["error"])
-	}
-}
-
-func TestCreateShortKey(t *testing.T) {
+func TestCreateShortenURL(t *testing.T) {
 	if err := clearTable("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
@@ -80,8 +63,8 @@ func TestCreateShortKey(t *testing.T) {
 		t.Error("original_url different from the one in the request")
 	}
 
-	if _, ok := m["short_key"]; !ok {
-		t.Error("short_key field missing in the response")
+	if _, ok := m["short_url"]; !ok {
+		t.Error("short_url field missing in the response")
 		return
 	}
 
@@ -90,19 +73,62 @@ func TestCreateShortKey(t *testing.T) {
 		return
 	}
 
-	if _, ok := m["shorten_url"].(string); !ok {
-		t.Error("Failed to typecast shorten_url field to string.")
+	if _, ok := m["short_url"].(string); !ok {
+		t.Error("Failed to typecast short_url field to string.")
 		return
 	}
 
-	regexPattern := `^https://localhost:8080/[A-Z a-z 0-9]{6}$`
-	if ok, _ := regexp.MatchString(regexPattern, m["shorten_url"].(string)); !ok {
-		t.Errorf("Expected product name to be 'test product'. Got '%v'", m["name"])
+	regexPattern := fmt.Sprintf(`^http://%s:%s/[A-Z a-z 0-9]{6}$`, os.Getenv("APP_URL"), os.Getenv("PORT"))
+	if ok, _ := regexp.MatchString(regexPattern, m["short_url"].(string)); !ok {
+		t.Errorf("Expected short_url format to be 'http://%s:%s/xxxxxx'. Got '%v'", os.Getenv("APP_URL"), os.Getenv("PORT"), m["short_url"])
+	}
+}
+
+func TestShortenURLNotGivenValidation(t *testing.T) {
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	var jsonStr = []byte(`{}`)
+	req, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+
+	response := executeRequest(req)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "URL not given" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'URL not given'. Got '%s'", m["error"])
+	}
+}
+
+func TestShortenInvalidURLValidation(t *testing.T) {
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	var jsonStr = []byte(`{"url":"asdasdffsadklj"}`)
+	req, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+
+	response := executeRequest(req)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Invalid URL given" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Invalid URL given'. Got '%s'", m["error"])
 	}
 }
 
 func TestRedirectViaShortKey(t *testing.T) {
-	clearTable("url")
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
 
 	shortKey, err := addShortKey("https://www.google.com/", time.Now().Add(60*time.Second))
 	if err != nil {
@@ -120,15 +146,35 @@ func TestRedirectViaShortKey(t *testing.T) {
 	}
 }
 
+func TestGetNonExistentShortKey(t *testing.T) {
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	req, _ := http.NewRequest("GET", "/123456", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusNotFound, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Short Key not found" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Short Key not found'. Got '%s'", m["error"])
+	}
+}
+
 func TestExpiredShortKey(t *testing.T) {
-	clearTable("urls")
-	shortKey, err := addShortKey("https://www.google.com/", time.Now())
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	shortKey, err := addShortKey("https://www.google.com/", time.Now().Add(-time.Second))
 	if err != nil {
 		t.Errorf("Failed to add original url to DB. ERROR: %s", err.Error())
 		return
 	}
-
-	time.Sleep(time.Second)
 
 	req, _ := http.NewRequest("GET", "/"+shortKey, nil)
 	response := executeRequest(req)
@@ -139,6 +185,42 @@ func TestExpiredShortKey(t *testing.T) {
 	json.Unmarshal(response.Body.Bytes(), &m)
 	if m["error"] != "Short Key not found" {
 		t.Errorf("Expected the 'error' key of the response to be set to 'Short Key not found'. Got '%s'", m["error"])
+	}
+}
+
+func TestShortKeyLengthVaidation(t *testing.T) {
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	req, _ := http.NewRequest("GET", "/1234567", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Invalid short key" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Invalid short key'. Got '%s'", m["error"])
+	}
+}
+
+func TestShortKeySpecialCharVaidation(t *testing.T) {
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	req, _ := http.NewRequest("GET", "/123#56", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Invalid short key" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Invalid short key'. Got '%s'", m["error"])
 	}
 }
 
@@ -154,7 +236,7 @@ func clearTable(tableName string) error {
 
 func addShortKey(originalURL string, expireTime time.Time) (string, error) {
 	shortKey := generateShortKey()
-	_, err := App.DB.Exec("INSERT INTO urls(orignal_url, short_key, expire_time) VALUES($1, $2, $3)", originalURL, shortKey, expireTime)
+	_, err := App.DB.Exec("INSERT INTO urls(original_url, short_key, expire_time) VALUES(?, ?, ?)", originalURL, shortKey, expireTime)
 	return shortKey, err
 }
 
