@@ -1,14 +1,15 @@
 package app
 
 import (
+	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
 )
 
 var App *AppConfig
@@ -16,6 +17,7 @@ var App *AppConfig
 type AppConfig struct {
 	Router *mux.Router
 	DB     *sql.DB
+	Redis  *redis.Client
 
 	wg    *sync.WaitGroup
 	debug bool
@@ -29,8 +31,7 @@ func NewApp(debug bool) *AppConfig {
 	return App
 }
 
-func (a *AppConfig) Initialize(host, port, user, password, DBName string) error {
-	addr := fmt.Sprintf("%s:%s", host, port)
+func (a *AppConfig) InitializeDB(addr, user, password, DBName string) error {
 	cfg := mysql.Config{
 		User:      user,
 		Passwd:    password,
@@ -54,9 +55,23 @@ func (a *AppConfig) Initialize(host, port, user, password, DBName string) error 
 		return err
 	}
 
-	a.Router = mux.NewRouter()
-	InitializeRoutes()
+	return err
+}
 
+func (a *AppConfig) InitializeRoutes() {
+	a.Router = mux.NewRouter()
+	App.Router.HandleFunc("/shorten", HandleURLShortening).Methods(http.MethodPost)
+	App.Router.HandleFunc("/{key}", HandleRedirectToOriginalURL).Methods(http.MethodGet)
+}
+
+func (a *AppConfig) InitializeRedis(addr, password string) error {
+	a.Redis = redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: "",
+		DB:       0,
+	})
+
+	_, err := a.Redis.Ping(context.Background()).Result()
 	return err
 }
 

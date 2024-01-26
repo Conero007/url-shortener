@@ -21,14 +21,23 @@ func TestMain(m *testing.M) {
 	}
 
 	testApp := NewApp(true)
-	if err := testApp.Initialize(
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
+
+	if err := testApp.InitializeDB(
+		os.Getenv("DB_ADDR"),
 		os.Getenv("DB_USERNAME"),
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_NAME"),
 	); err != nil {
-		log.Fatal("Failed to initialize the App ", err)
+		log.Fatal("Failed to initialize db ", err)
+	}
+
+	testApp.InitializeRoutes()
+
+	if err := testApp.InitializeRedis(
+		os.Getenv("REDIS_ADDR"),
+		os.Getenv("REDIS_PASSWORD"),
+	); err != nil {
+		log.Fatal("Failed to initialize redis ", err)
 	}
 
 	code := m.Run()
