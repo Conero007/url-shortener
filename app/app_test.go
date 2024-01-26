@@ -229,6 +229,36 @@ func TestShortKeySpecialCharVaidation(t *testing.T) {
 	}
 }
 
+func TestDuplicateOrigianlURL(t *testing.T) {
+	if err := clearTable("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	var m1 map[string]interface{}
+	var jsonStr1 = []byte(`{"url":"https://www.google.com/"}`)
+	req1, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr1))
+	req1.Header.Set("Content-Type", "application/json")
+
+	response1 := executeRequest(req1)
+	checkResponseCode(t, http.StatusCreated, response1.Code)
+	json.Unmarshal(response1.Body.Bytes(), &m1)
+	shortURL1 := m1["short_url"].(string)
+
+	var m2 map[string]interface{}
+	var jsonStr2 = []byte(`{"url":"https://www.google.com/"}`)
+	req2, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr2))
+	req2.Header.Set("Content-Type", "application/json")
+	response2 := executeRequest(req2)
+	checkResponseCode(t, http.StatusCreated, response2.Code)
+	json.Unmarshal(response2.Body.Bytes(), &m2)
+	shortURL2 := m2["short_url"].(string)
+
+	if shortURL1 != shortURL2 {
+		t.Errorf("Expected same short url for duplicate request for the same origianl url, got %s and %s", shortURL1, shortURL2)
+	}
+}
+
 func clearTable(tableName string) error {
 	if _, err := App.DB.Exec("DELETE FROM " + tableName); err != nil {
 		return err
