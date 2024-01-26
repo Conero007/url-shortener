@@ -13,7 +13,7 @@ func main() {
 		log.Fatal(".env file could not be loaded ", err)
 	}
 
-	app := app.NewApp()
+	app := app.NewApp(false)
 	if err := app.Initialize(
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),

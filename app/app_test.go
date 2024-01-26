@@ -20,7 +20,7 @@ func TestMain(m *testing.M) {
 		log.Fatal(".testing.env file could not be loaded ", err)
 	}
 
-	testApp := NewApp()
+	testApp := NewApp(true)
 	if err := testApp.Initialize(
 		os.Getenv("DB_HOST"),
 		os.Getenv("DB_PORT"),
@@ -164,7 +164,7 @@ func TestGetNonExistentShortKey(t *testing.T) {
 	}
 }
 
-func TestExpiredShortKey(t *testing.T) {
+func TestGetExpiredShortKey(t *testing.T) {
 	if err := clearTable("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
@@ -185,6 +185,11 @@ func TestExpiredShortKey(t *testing.T) {
 	json.Unmarshal(response.Body.Bytes(), &m)
 	if m["error"] != "Short Key not found" {
 		t.Errorf("Expected the 'error' key of the response to be set to 'Short Key not found'. Got '%s'", m["error"])
+	}
+
+	originalURL := fetchOriginalURL(shortKey)
+	if originalURL != "" {
+		t.Error("Expected the expired short key to be deleted from the DB, but found it")
 	}
 }
 
@@ -238,6 +243,12 @@ func addShortKey(originalURL string, expireTime time.Time) (string, error) {
 	shortKey := generateShortKey()
 	_, err := App.DB.Exec("INSERT INTO urls(original_url, short_key, expire_time) VALUES(?, ?, ?)", originalURL, shortKey, expireTime)
 	return shortKey, err
+}
+
+func fetchOriginalURL(shortKey string) string {
+	var originalURL string
+	App.DB.QueryRow("SELECT original_url FROM urls WHERE short_key = ? LIMIT 1", shortKey).Scan(&originalURL)
+	return originalURL
 }
 
 func executeRequest(req *http.Request) *httptest.ResponseRecorder {

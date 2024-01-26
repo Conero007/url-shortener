@@ -36,6 +36,10 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
+
+	if App.debug {
+		App.wg.Wait()
+	}
 }
 
 func validateURL(originalURL string) bool {

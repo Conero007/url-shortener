@@ -2,7 +2,6 @@ package app
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -38,13 +37,10 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 		ExpireTime:  expireTime,
 	}
 
-	if err := u.Create(App.DB); err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
-		log.Print(err)
-		return
-	}
+	App.wg.Add(1)
+	go u.Create(App.DB, App.wg)
 
-	respondWithJSON(w, http.StatusCreated, u)
+	respondWithJSON(w, http.StatusCreated, &u)
 }
 
 func HandleRedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +55,8 @@ func HandleRedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
 	u.Fetch(App.DB)
 
 	if u.OriginalURL == "" || u.ExpireTime.Before(time.Now()) {
+		App.wg.Add(1)
+		go u.Delete(App.DB, App.wg)
 		respondWithError(w, http.StatusNotFound, "Short Key not found")
 		return
 	}

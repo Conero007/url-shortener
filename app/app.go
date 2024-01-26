@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -15,10 +16,16 @@ var App *AppConfig
 type AppConfig struct {
 	Router *mux.Router
 	DB     *sql.DB
+
+	wg    *sync.WaitGroup
+	debug bool
 }
 
-func NewApp() *AppConfig {
-	App = &AppConfig{}
+func NewApp(debug bool) *AppConfig {
+	App = &AppConfig{
+		debug: debug,
+		wg:    &sync.WaitGroup{},
+	}
 	return App
 }
 
