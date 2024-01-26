@@ -78,7 +78,7 @@ func TestCreateShortenURL(t *testing.T) {
 		return
 	}
 
-	regexPattern := fmt.Sprintf(`^http://%s:%s/[A-Z a-z 0-9]{6}$`, os.Getenv("APP_URL"), os.Getenv("PORT"))
+	regexPattern := fmt.Sprintf(`^http://%s:%s/[A-Z a-z 0-9]{10,11}$`, os.Getenv("APP_URL"), os.Getenv("PORT"))
 	if ok, _ := regexp.MatchString(regexPattern, m["short_url"].(string)); !ok {
 		t.Errorf("Expected short_url format to be 'http://%s:%s/xxxxxx'. Got '%v'", os.Getenv("APP_URL"), os.Getenv("PORT"), m["short_url"])
 	}
@@ -152,7 +152,7 @@ func TestGetNonExistentShortKey(t *testing.T) {
 		return
 	}
 
-	req, _ := http.NewRequest("GET", "/123456", nil)
+	req, _ := http.NewRequest("GET", "/4l421T5gJtO", nil)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusNotFound, response.Code)
@@ -240,7 +240,7 @@ func clearTable(tableName string) error {
 }
 
 func addShortKey(originalURL string, expireTime time.Time) (string, error) {
-	shortKey := generateShortKey()
+	shortKey := "4l421T5gJtO"
 	_, err := App.DB.Exec("INSERT INTO urls(original_url, short_key, expire_time) VALUES(?, ?, ?)", originalURL, shortKey, expireTime)
 	return shortKey, err
 }

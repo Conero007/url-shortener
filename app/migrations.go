@@ -4,7 +4,7 @@ func getTableCreationQueries() map[string]string {
 	return map[string]string{
 		"urls": `CREATE TABLE IF NOT EXISTS urls (
 			id INT PRIMARY KEY AUTO_INCREMENT,
-			original_url VARCHAR(255) NOT NULL UNIQUE,
+			original_url VARCHAR(255) NOT NULL,
 			short_key VARCHAR(20) NOT NULL UNIQUE,
 			expire_time TIMESTAMP NOT NULL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

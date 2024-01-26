@@ -26,19 +26,11 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortKey := generateShortKey()
-	shortURL := generateShortURL(shortKey)
-	expireTime := truncateToDay(time.Now().AddDate(0, 0, 8))
-
-	u := models.URL{
-		OriginalURL: originalURL,
-		ShortKey:    shortKey,
-		ShortURL:    shortURL,
-		ExpireTime:  expireTime,
+	u := models.GetURL(originalURL)
+	if err := u.CreateShortURL(App.DB); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong. Please try again.")
+		return
 	}
-
-	App.wg.Add(1)
-	go u.Create(App.DB, App.wg)
 
 	respondWithJSON(w, http.StatusCreated, &u)
 }
