@@ -29,17 +29,17 @@ func GetURL(originalURL string) *URL {
 
 func (u *URL) CreateShortURL(db *sql.DB) error {
 	u.generateShortKey()
+	u.generateShortURL()
 	u.updateExpireTime()
 
 	var e *pgconn.PgError
 	_, err := db.Exec("INSERT INTO urls(original_url, short_key, expire_time) VALUES(?, ?, ?)", u.OriginalURL, u.ShortKey, u.ExpireTime)
-	if errors.As(err, &e) && e.Code == pgerrcode.UniqueViolation {
+	if err != nil && errors.As(err, &e) && e.Code == pgerrcode.UniqueViolation {
 		log.Printf("[Error] Could insert into DB. ERROR: %s", err.Error())
 		return err
 	}
 
-	u.generateShortURL()
-	return err
+	return nil
 }
 
 func (u *URL) Fetch(db *sql.DB) {
