@@ -4,8 +4,8 @@ func getTableCreationQueries() map[string]string {
 	return map[string]string{
 		"urls": `CREATE TABLE IF NOT EXISTS urls (
 			id INT PRIMARY KEY AUTO_INCREMENT,
-			original_url VARCHAR(255) NOT NULL,
-			short_key VARCHAR(20) NOT NULL,
+			original_url VARCHAR(255) NOT NULL UNIQUE,
+			short_key VARCHAR(20) NOT NULL UNIQUE,
 			expire_time TIMESTAMP NOT NULL,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -28,10 +28,7 @@ func RunMigrations(dbName string) error {
 
 func RollbackMigrations() error {
 	for tableName := range getTableCreationQueries() {
-		if _, err := App.DB.Exec("DELETE FROM " + tableName); err != nil {
-			return err
-		}
-		if _, err := App.DB.Exec("ALTER TABLE " + tableName + " AUTO_INCREMENT = 1"); err != nil {
+		if _, err := App.DB.Exec("DROP TABLE " + tableName); err != nil {
 			return err
 		}
 	}
