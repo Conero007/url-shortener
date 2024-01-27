@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/Conero007/url-shortener-golang/database"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
@@ -51,7 +52,7 @@ func (a *AppConfig) InitializeDB(addr, user, password, DBName string) error {
 		return err
 	}
 
-	if err := RunMigrations(DBName); err != nil {
+	if err := database.RunMigrations(App.DB, DBName); err != nil {
 		return err
 	}
 
