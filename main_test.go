@@ -1,4 +1,4 @@
-package app
+package main
 
 import (
 	"bytes"
@@ -12,17 +12,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Conero007/url-shortener-golang/app"
+	"github.com/Conero007/url-shortener-golang/database"
 	"github.com/joho/godotenv"
 )
 
+var TestApp *app.AppConfig
+
 func TestMain(m *testing.M) {
-	if err := godotenv.Load("../.testing.env"); err != nil {
+	if err := godotenv.Load(".testing.env"); err != nil {
 		log.Fatal(".testing.env file could not be loaded ", err)
 	}
 
-	testApp := NewApp(true)
+	TestApp = app.NewApp(true)
 
-	if err := testApp.InitializeDB(
+	if err := TestApp.InitializeDB(
 		os.Getenv("DB_ADDR"),
 		os.Getenv("DB_USERNAME"),
 		os.Getenv("DB_PASSWORD"),
@@ -31,22 +35,20 @@ func TestMain(m *testing.M) {
 		log.Fatal("Failed to initialize db ", err)
 	}
 
-	testApp.InitializeRoutes()
+	TestApp.InitializeRoutes()
 
-	if err := testApp.InitializeRedis(
+	if err := TestApp.InitializeRedis(
 		os.Getenv("REDIS_ADDR"),
 		os.Getenv("REDIS_PASSWORD"),
 	); err != nil {
 		log.Fatal("Failed to initialize redis ", err)
 	}
 
-	code := m.Run()
+	m.Run()
 
-	if err := RollbackMigrations(); err != nil {
+	if err := database.RollbackMigrations(TestApp.DB, "create_urls_table"); err != nil {
 		log.Fatal(err)
 	}
-
-	os.Exit(code)
 }
 
 func TestCreateShortenURL(t *testing.T) {
@@ -269,10 +271,10 @@ func TestDuplicateOrigianlURL(t *testing.T) {
 }
 
 func clearTable(tableName string) error {
-	if _, err := App.DB.Exec("DELETE FROM " + tableName); err != nil {
+	if _, err := TestApp.DB.Exec("DELETE FROM " + tableName); err != nil {
 		return err
 	}
-	if _, err := App.DB.Exec("ALTER TABLE " + tableName + " AUTO_INCREMENT = 1"); err != nil {
+	if _, err := TestApp.DB.Exec("ALTER TABLE " + tableName + " AUTO_INCREMENT = 1"); err != nil {
 		return err
 	}
 	return nil
@@ -280,19 +282,19 @@ func clearTable(tableName string) error {
 
 func addShortKey(originalURL string, expireTime time.Time) (string, error) {
 	shortKey := "4l421T5gJtO"
-	_, err := App.DB.Exec("INSERT INTO urls(original_url, short_key, expire_time) VALUES(?, ?, ?)", originalURL, shortKey, expireTime)
+	_, err := TestApp.DB.Exec("INSERT INTO urls(original_url, short_key, expire_time) VALUES(?, ?, ?)", originalURL, shortKey, expireTime)
 	return shortKey, err
 }
 
 func fetchOriginalURL(shortKey string) string {
 	var originalURL string
-	App.DB.QueryRow("SELECT original_url FROM urls WHERE short_key = ? LIMIT 1", shortKey).Scan(&originalURL)
+	TestApp.DB.QueryRow("SELECT original_url FROM urls WHERE short_key = ? LIMIT 1", shortKey).Scan(&originalURL)
 	return originalURL
 }
 
 func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-	App.Router.ServeHTTP(rr, req)
+	TestApp.Router.ServeHTTP(rr, req)
 	return rr
 }
 
