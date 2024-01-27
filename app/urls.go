@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -32,6 +33,8 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go setRedisKey(App.Redis, context.Background(), u.ShortKey, u, 24*time.Hour)
+
 	respondWithJSON(w, http.StatusCreated, &u)
 }
 
@@ -43,12 +46,17 @@ func HandleRedirectToOriginalURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u := models.URL{ShortKey: vars["key"]}
-	u.Fetch(App.DB)
+	var u models.URL
+
+	if err := getRedisKey(App.Redis, context.Background(), vars["key"], &u); err != nil {
+		u.ShortKey = vars["key"]
+		u.Fetch(App.DB)
+	}
 
 	if u.OriginalURL == "" || u.ExpireTime.Before(time.Now()) {
 		App.wg.Add(1)
 		go u.Delete(App.DB, App.wg)
+		go deleteRedisKey(App.Redis, context.Background(), vars["key"])
 		respondWithError(w, http.StatusNotFound, "Short Key not found")
 		return
 	}
