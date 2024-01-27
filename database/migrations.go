@@ -71,13 +71,12 @@ func RollbackMigrations(db *sql.DB, migrationNames ...string) error {
 	}
 
 	for _, migrationName := range migrationNames {
-		if _, ok := migrations[migrationName]; !ok {
-			continue
+		if _, ok := migrations[migrationName]; ok {
+			if err = migrations[migrationName].RollbackQuery(db); err != nil {
+				return err
+			}
 		}
 
-		if err := migrations[migrationName].RollbackQuery(db); err != nil {
-			return err
-		}
 	}
 
 	return nil
