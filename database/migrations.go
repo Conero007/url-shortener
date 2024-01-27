@@ -12,6 +12,16 @@ type Migration struct {
 	Rollback string `json:"rollback"`
 }
 
+func (m Migration) RunQuery(db *sql.DB) error {
+	_, err := db.Exec(m.Query)
+	return err
+}
+
+func (m Migration) RollbackQuery(db *sql.DB) error {
+	_, err := db.Exec(m.Rollback)
+	return err
+}
+
 type Migrations map[string]Migration
 
 func getMigrations() (Migrations, error) {
@@ -46,11 +56,12 @@ func RunMigrations(db *sql.DB, dbName string) error {
 	}
 
 	for _, migration := range migrations {
-		if _, err := db.Exec(migration.Query); err != nil {
+		if err := migration.RunQuery(db); err != nil {
 			return err
 		}
 	}
-	return nil
+
+	return err
 }
 
 func RollbackMigrations(db *sql.DB, migrationNames ...string) error {
@@ -64,10 +75,11 @@ func RollbackMigrations(db *sql.DB, migrationNames ...string) error {
 			continue
 		}
 
-		if _, err := db.Exec(migrations[migrationName].Rollback); err != nil {
+		if err := migrations[migrationName].RollbackQuery(db); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
