@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/Conero007/url-shortener-golang/constants"
-	"github.com/Conero007/url-shortener-golang/models"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -82,9 +81,4 @@ func validateShortKey(shortKey string) bool {
 		return false
 	}
 	return true
-}
-
-func validateExpireTime(expireTime time.Time) bool {
-	maxTime := models.FetchMaxExpireTime()
-	return expireTime.Before(maxTime)
 }

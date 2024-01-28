@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -11,9 +12,8 @@ import (
 )
 
 type ShortenURLRequest struct {
-	URL            string    `json:"url"`
-	CustomShortKey string    `json:"custom_short_key"`
-	ExpireTime     time.Time `json:"expire_time"`
+	URL            string `json:"url"`
+	CustomShortKey string `json:"custom_short_key"`
 }
 
 func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
@@ -40,15 +40,10 @@ func HandleURLShortening(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if requestBody.CustomShortKey != "" && !models.CheckShortKeyAvailability(App.DB, requestBody.CustomShortKey) {
 		respondWithError(w, http.StatusNotAcceptable, "Short key not available to use")
+		return
 	}
 
 	u.ShortKey = requestBody.CustomShortKey
-
-	if requestBody.ExpireTime.IsZero() && !validateExpireTime(requestBody.ExpireTime) {
-		respondWithError(w, http.StatusBadRequest, "Invalid expire time")
-	}
-
-	u.ExpireTime = requestBody.ExpireTime
 
 	if err := u.CreateShortURL(App.DB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong. Please try again.")
