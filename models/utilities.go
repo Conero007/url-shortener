@@ -15,7 +15,7 @@ func CheckShortKeyAvailability(db *sql.DB, customShortKey string) bool {
 	var exists bool
 	query := "SELECT EXISTS(SELECT 1 FROM urls WHERE short_key = ? LIMIT 1)"
 	db.QueryRow(query, customShortKey).Scan(&exists)
-	return exists
+	return !exists
 }
 
 func stringToBase62(input string) string {
