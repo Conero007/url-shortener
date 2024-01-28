@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Conero007/url-shortener-golang/app"
+	"github.com/Conero007/url-shortener-golang/constants"
 	"github.com/Conero007/url-shortener-golang/database"
 	"github.com/joho/godotenv"
 )
@@ -52,7 +54,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestCreateShortenURL(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
@@ -67,45 +69,18 @@ func TestCreateShortenURL(t *testing.T) {
 	var m map[string]interface{}
 	json.Unmarshal(response.Body.Bytes(), &m)
 
-	if _, ok := m["original_url"]; !ok {
-		t.Error("original_url field missing in the response")
+	if !validateShortenAPIResponse(t, m) {
 		return
-	} else if m["original_url"] != "https://www.google.com/" {
-		t.Error("original_url different from the one in the request")
-	}
-
-	if _, ok := m["short_url"]; !ok {
-		t.Error("short_url field missing in the response")
-		return
-	}
-
-	if _, ok := m["expire_time"]; !ok {
-		t.Error("expire_time field missing in the response")
-		return
-	}
-
-	if _, ok := m["short_url"].(string); !ok {
-		t.Error("Failed to typecast short_url field to string.")
-		return
-	}
-
-	regexPattern := fmt.Sprintf(`^http://%s:%s/[A-Z a-z 0-9]{10,11}$`, os.Getenv("APP_URL"), os.Getenv("PORT"))
-	if ok, _ := regexp.MatchString(regexPattern, m["short_url"].(string)); !ok {
-		t.Errorf("Expected short_url format to be 'http://%s:%s/xxxxxx'. Got '%v'", os.Getenv("APP_URL"), os.Getenv("PORT"), m["short_url"])
 	}
 }
 
-func TestShortenURLNotGivenValidation(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+func TestCreateShortenURLWithEmptyPayload(t *testing.T) {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
 
-	var jsonStr = []byte(`{}`)
-	req, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-
-	response := executeRequest(req)
+	response := sendRequesttoShortenAPI(`{}`)
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
 
 	var m map[string]string
@@ -115,17 +90,13 @@ func TestShortenURLNotGivenValidation(t *testing.T) {
 	}
 }
 
-func TestShortenInvalidURLValidation(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+func TestCreateShortenURLWithInvalidURL(t *testing.T) {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
 
-	var jsonStr = []byte(`{"url":"asdasdffsadklj"}`)
-	req, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr))
-	req.Header.Set("Content-Type", "application/json")
-
-	response := executeRequest(req)
+	response := sendRequesttoShortenAPI(`{"url":"google.com"}`)
 	checkResponseCode(t, http.StatusBadRequest, response.Code)
 
 	var m map[string]string
@@ -135,20 +106,82 @@ func TestShortenInvalidURLValidation(t *testing.T) {
 	}
 }
 
-func TestRedirectViaShortKey(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+func TestCreateShortenURLWithCustomURL(t *testing.T) {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
 
-	shortKey, err := addShortKey("https://www.google.com/", time.Now().Add(60*time.Second))
-	if err != nil {
-		t.Errorf("Failed to add original url to DB. ERROR: %s", err.Error())
+	response := sendRequesttoShortenAPI(`{"url":"https://www.google.com/", "custom_short_key": "654321"}`)
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if !validateShortenAPIResponse(t, m) {
 		return
 	}
 
+	shortURL := m["short_url"].(string)
+	shortKey := shortURL[len(shortURL)-constants.SHORT_KEY_LENGTH:]
+
+	if shortKey != "654321" {
+		t.Errorf("Expected short key to be (654321), got %s", shortKey)
+	}
+}
+
+func TestCreateShortenURLWithInvalidCustomURL_SpecialCharValidation(t *testing.T) {
+	if err := clearData("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	response := sendRequesttoShortenAPI(`{"url":"https://www.google.com/", "custom_short_key": "65#321"}`)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Invalid custom short key" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Invalid custom short key'. Got '%s'", m["error"])
+	}
+}
+
+func TestCreateShortenURLWithInvalidCustomURL_LengthValidation(t *testing.T) {
+	if err := clearData("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	response := sendRequesttoShortenAPI(`{"url":"https://www.google.com/", "custom_short_key": "1234567"}`)
+	checkResponseCode(t, http.StatusBadRequest, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Invalid custom short key" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Invalid custom short key'. Got '%s'", m["error"])
+	}
+}
+
+func TestRedirectViaShortKey(t *testing.T) {
+	if err := clearData("urls"); err != nil {
+		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
+		return
+	}
+
+	response := sendRequesttoShortenAPI(`{"url": "https://www.google.com/"}`)
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if !validateShortenAPIResponse(t, m) {
+		return
+	}
+
+	shortURL := m["short_url"].(string)
+	shortKey := shortURL[len(shortURL)-constants.SHORT_KEY_LENGTH:]
+
 	req, _ := http.NewRequest("GET", "/"+shortKey, nil)
-	response := executeRequest(req)
+	response = executeRequest(req)
 
 	checkResponseCode(t, http.StatusMovedPermanently, response.Code)
 
@@ -158,12 +191,12 @@ func TestRedirectViaShortKey(t *testing.T) {
 }
 
 func TestGetNonExistentShortKey(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
 
-	req, _ := http.NewRequest("GET", "/4l421T5gJtO", nil)
+	req, _ := http.NewRequest("GET", "/123456", nil)
 	response := executeRequest(req)
 
 	checkResponseCode(t, http.StatusNotFound, response.Code)
@@ -176,7 +209,7 @@ func TestGetNonExistentShortKey(t *testing.T) {
 }
 
 func TestGetExpiredShortKey(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
@@ -204,8 +237,8 @@ func TestGetExpiredShortKey(t *testing.T) {
 	}
 }
 
-func TestShortKeyLengthVaidation(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+func TestInvalidShortKey_LengthValidation(t *testing.T) {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
@@ -222,8 +255,8 @@ func TestShortKeyLengthVaidation(t *testing.T) {
 	}
 }
 
-func TestShortKeySpecialCharVaidation(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+func TestInvalidShortKey_SpecialCharValidation(t *testing.T) {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
@@ -240,48 +273,50 @@ func TestShortKeySpecialCharVaidation(t *testing.T) {
 	}
 }
 
-func TestDuplicateOrigianlURL(t *testing.T) {
-	if err := clearTable("urls"); err != nil {
+func TestDuplicateOriginalURL(t *testing.T) {
+	if err := clearData("urls"); err != nil {
 		t.Errorf("Could not clear urls table. ERROR: %s", err.Error())
 		return
 	}
 
-	var m1 map[string]interface{}
-	var jsonStr1 = []byte(`{"url":"https://www.google.com/"}`)
-	req1, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr1))
-	req1.Header.Set("Content-Type", "application/json")
-
-	response1 := executeRequest(req1)
+	response1 := sendRequesttoShortenAPI(`{"url":"https://www.google.com/"}`)
 	checkResponseCode(t, http.StatusCreated, response1.Code)
+
+	var m1 map[string]interface{}
 	json.Unmarshal(response1.Body.Bytes(), &m1)
-	shortURL1 := m1["short_url"].(string)
+	if !validateShortenAPIResponse(t, m1) {
+		return
+	}
+
+	response2 := sendRequesttoShortenAPI(`{"url":"https://www.google.com/"}`)
+	checkResponseCode(t, http.StatusCreated, response2.Code)
 
 	var m2 map[string]interface{}
-	var jsonStr2 = []byte(`{"url":"https://www.google.com/"}`)
-	req2, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr2))
-	req2.Header.Set("Content-Type", "application/json")
-	response2 := executeRequest(req2)
-	checkResponseCode(t, http.StatusCreated, response2.Code)
 	json.Unmarshal(response2.Body.Bytes(), &m2)
-	shortURL2 := m2["short_url"].(string)
+	if !validateShortenAPIResponse(t, m1) {
+		return
+	}
 
-	if shortURL1 != shortURL2 {
-		t.Errorf("Expected same short url for duplicate request for the same origianl url, got %s and %s", shortURL1, shortURL2)
+	if m1["short_url"].(string) == m2["short_url"].(string) {
+		t.Errorf("Expected different short url for duplicate request for the same origianl url")
 	}
 }
 
-func clearTable(tableName string) error {
+func clearData(tableName string) error {
 	if _, err := TestApp.DB.Exec("DELETE FROM " + tableName); err != nil {
 		return err
 	}
 	if _, err := TestApp.DB.Exec("ALTER TABLE " + tableName + " AUTO_INCREMENT = 1"); err != nil {
 		return err
 	}
+	if _, err := TestApp.Redis.FlushAllAsync(context.Background()).Result(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func addShortKey(originalURL string, expireTime time.Time) (string, error) {
-	shortKey := "4l421T5gJtO"
+	shortKey := "123456"
 	_, err := TestApp.DB.Exec("INSERT INTO urls(original_url, short_key, expire_time) VALUES(?, ?, ?)", originalURL, shortKey, expireTime)
 	return shortKey, err
 }
@@ -302,4 +337,45 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
 		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
 	}
+}
+
+func validateShortenAPIResponse(t *testing.T, m map[string]interface{}) bool {
+	if _, ok := m["original_url"]; !ok {
+		t.Error("original_url field missing in the response")
+		return false
+	} else if m["original_url"] != "https://www.google.com/" {
+		t.Error("original_url different from the one in the request")
+		return false
+	}
+
+	if _, ok := m["short_url"]; !ok {
+		t.Error("short_url field missing in the response")
+		return false
+	}
+
+	if _, ok := m["expire_time"]; !ok {
+		t.Error("expire_time field missing in the response")
+		return false
+	}
+
+	if _, ok := m["short_url"].(string); !ok {
+		t.Error("Failed to typecast short_url field to string.")
+		return false
+	}
+
+	regexPattern := fmt.Sprintf(`^http://%s:%s/[A-Z a-z 0-9]{%d}$`, os.Getenv("APP_URL"), os.Getenv("PORT"), constants.SHORT_KEY_LENGTH)
+	if ok, _ := regexp.MatchString(regexPattern, m["short_url"].(string)); !ok {
+		t.Errorf("Expected short_url format to be 'http://%s:%s/xxxxxx'. Got '%v'", os.Getenv("APP_URL"), os.Getenv("PORT"), m["short_url"])
+		return false
+	}
+
+	return true
+}
+
+func sendRequesttoShortenAPI(paylaod string) *httptest.ResponseRecorder {
+	var jsonStr1 = []byte(paylaod)
+	req1, _ := http.NewRequest("POST", "/shorten", bytes.NewBuffer(jsonStr1))
+	req1.Header.Set("Content-Type", "application/json")
+	response := executeRequest(req1)
+	return response
 }
