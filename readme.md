@@ -24,7 +24,7 @@ To run this application, ensure you have the following installed:
    sh bash/setup.sh
    ```
 
-3. Configure your `.env` file with the credentials for your environment:
+3. Configure your `.env` file with the credentials for your environment, prefilled with values for the configuration present in the github repo:
 
    ```env
    # App Config
@@ -32,17 +32,17 @@ To run this application, ensure you have the following installed:
    PORT=3000
 
    # Database creds
-   DB_ADDR=
-   DB_USERNAME=
-   DB_PASSWORD=
-   DB_NAME=
+   DB_ADDR=db:3306
+   DB_USERNAME=root
+   DB_PASSWORD=1234
+   DB_NAME=url_shortener
 
    # Redis creds
-   REDIS_ADDR=
+   REDIS_ADDR=redis:6379
    REDIS_PASSWORD=
    ```
 
-4. Configure your `.testing.env` file with the credentials for your testing environment:
+4. Configure your `.testing.env` file with the credentials for your testing environment, prefilled with values for the configuration present in the github repo:
 
    ```env
    # App Config
@@ -50,13 +50,13 @@ To run this application, ensure you have the following installed:
    PORT=3000
 
    # Database creds
-   DB_ADDR=
-   DB_USERNAME=
-   DB_PASSWORD=
-   DB_NAME=
+   DB_ADDR=db:3306
+   DB_USERNAME=root
+   DB_PASSWORD=1234
+   DB_NAME=url_shortener_testing
 
    # Redis creds
-   REDIS_ADDR=
+   REDIS_ADDR=redis:6379
    REDIS_PASSWORD=
    ```
 
