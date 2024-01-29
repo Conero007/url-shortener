@@ -1,6 +1,6 @@
 # URL Shortener in Golang
 
-This project is a straightforward URL shortener application written in Go. It utilizes MySQL to store the original URLs and their corresponding short keys, and Redis for caching the short URLs. The application additionally provides an API for creating new short URLs and redirecting to the original URLs.
+This project is a straightforward URL shortener application written in Go. It leverages MySQL for robust persistent storage and Redis for efficient caching. The application features a dual-API system—one for the creation of customized short URLs and another for ensuring seamless redirection to the original URLs. 
 
 ## Prerequisites
 
