@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Conero007/url-shortener-golang/constants"
+	"github.com/Conero007/url-shortener/constants"
 	"github.com/redis/go-redis/v9"
 )
 

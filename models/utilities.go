@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Conero007/url-shortener-golang/constants"
+	"github.com/Conero007/url-shortener/constants"
 )
 
 func CheckShortKeyAvailability(db *sql.DB, customShortKey string) bool {

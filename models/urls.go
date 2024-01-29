@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Conero007/url-shortener-golang/constants"
+	"github.com/Conero007/url-shortener/constants"
 	"github.com/go-sql-driver/mysql"
 )
 

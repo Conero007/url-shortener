@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Conero007/url-shortener-golang/app"
-	"github.com/Conero007/url-shortener-golang/constants"
-	"github.com/Conero007/url-shortener-golang/database"
+	"github.com/Conero007/url-shortener/app"
+	"github.com/Conero007/url-shortener/constants"
+	"github.com/Conero007/url-shortener/database"
 	"github.com/joho/godotenv"
 )
 

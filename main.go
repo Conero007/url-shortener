@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/Conero007/url-shortener-golang/app"
+	"github.com/Conero007/url-shortener/app"
 	"github.com/joho/godotenv"
 )
 

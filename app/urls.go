@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Conero007/url-shortener-golang/models"
+	"github.com/Conero007/url-shortener/models"
 	"github.com/gorilla/mux"
 )
 

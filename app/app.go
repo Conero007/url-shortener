@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Conero007/url-shortener-golang/database"
+	"github.com/Conero007/url-shortener/database"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"

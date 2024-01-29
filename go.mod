@@ -1,4 +1,4 @@
-module github.com/Conero007/url-shortener-golang
+module github.com/Conero007/url-shortener
 
 go 1.21.3
 
