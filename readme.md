@@ -81,7 +81,7 @@ The application provides the following API endpoints:
    ```json
    {
      "url": "https://www.example.com",
-     "custom_short_key": "abc123" // optional
+     "custom_short_key": "abc123"
    }
    ```
 
