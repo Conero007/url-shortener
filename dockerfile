@@ -1,12 +1,12 @@
-FROM golang:1.21
+FROM golang:1.21-alpine
 
-RUN apt-get update --fix-missing
-RUN apt-get install -y wget vim telnet git pkg-config libssl-dev net-tools make
-RUN apt-get update --fix-missing
+RUN apk update && \
+    apk add --no-cache git make && \
+    rm -rf /var/cache/apk/*
 
 RUN git config --global --add safe.directory /var/www/url_shortener
 
-RUN mkdir -p /var/www
+RUN mkdir -p /var/www/url_shortener
 
 COPY . /var/www/url_shortener
 
