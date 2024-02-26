@@ -1,4 +1,4 @@
-version: "1.0"
+version: "2.0"
 services:
   db:
     image: mysql:8.0
@@ -8,8 +8,6 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: 1234
       MYSQL_DATABASE: url_shortener
-    ports:
-      - 3309:3306
     volumes:
       - data:/var/lib/mysql
 
@@ -42,8 +40,6 @@ services:
       dockerfile: dockerfile
     image: go:1.21
     container_name: go
-    ports:
-      - 3000:3000
     volumes:
       - .:/var/www/url_shortener:rw
     networks:
